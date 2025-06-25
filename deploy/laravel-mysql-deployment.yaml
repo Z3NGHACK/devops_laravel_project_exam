@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: laravel-mysql-deployment
+  labels:
+    app: laravel-mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: laravel-mysql
+  template:
+    metadata:
+      labels:
+        app: laravel-mysql
+    spec:
+      containers:
+      - name: web-server
+        image: php:8.2-fpm
+        ports:
+        - containerPort: 8080
+        - containerPort: 22
+        volumeMounts:
+        - name: app-code
+          mountPath: /var/www/html
+        # Install required PHP extensions and NGINX
+        command: ["sh", "-c", "apt-get update && apt-get install -y nginx && docker-php-ext-install pdo pdo_mysql && service nginx start && tail -f /dev/null"]
+        
+      - name: mysql-db
+        image: mysql:8.0
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: Hello@123
+        - name: MYSQL_DATABASE
+          value: abieesogt-db
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: app-code
+        emptyDir: {}
+      - name: mysql-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: laravel-service
+spec:
+  type: NodePort
+  selector:
+    app: laravel-mysql
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+    - name: ssh
+      port: 22
+      targetPort: 22
+      nodePort: 30022
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+      nodePort: 30306
